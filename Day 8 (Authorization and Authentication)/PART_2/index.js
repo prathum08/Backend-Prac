@@ -5,7 +5,7 @@ const path = require("path");
 const cookieParser = require("cookie-parser");
 const userModel = require("./models/user");
 const bcrypt = require("bcrypt");
-const jwt = require('jsonwebtoken')
+const jwt = require("jsonwebtoken");
 
 app.set("view engine", "ejs");
 app.use(express.json());
@@ -29,35 +29,39 @@ app.post("/create", async (req, res) => {
         age,
         password: hash,
       });
-      let token = jwt.sign({email} , "shhhhh");
-      res.cookie("token" , token);
-      res.redirect('/');
+      let token = jwt.sign({ email }, "shhhhh");
+      res.cookie("token", token);
+      res.redirect("/");
     });
   });
-
-  
 });
 
 //login route
-app.get('/login' , (req , res) =>{
-    res.render('login');
-})
+app.get("/login", (req, res) => {
+  res.render("login");
+});
 
-app.post('/login' , async (req , res) =>{
-    let user = await userModel.findOne({email: req.body.email})
-    if(!user){
-        return res.send("something went wrong");
+app.post("/login", async (req, res) => {
+  let user = await userModel.findOne({ email: req.body.email });
+  if (!user) {
+    return res.send("something went wrong");
+  }
+
+  bcrypt.compare(req.body.password, user.password, (err, result) => {
+    if (result) {
+      let token = jwt.sign({ email }, "shhhhh");
+      res.cookie("token", token);
+      res.send("you can login");
+    } else {
+      res.send("something went wrong");
     }
-
-    bcrypt.compare(req.body.password , user.password , (err , result) =>{
-        console.log(result);
-    })
-})
+  });
+});
 //logout route
-app.get('/logout' , (req , res) =>{
-    res.cookie("token" , "");
-    res.redirect('/');
-})
+app.get("/logout", (req, res) => {
+  res.cookie("token", "");
+  res.redirect("/");
+});
 
 app.listen(port, (req, res) => {
   console.log("Server is listing on ", port);
