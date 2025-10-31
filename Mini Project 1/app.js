@@ -1,5 +1,6 @@
 const express = require("express");
 const userModel = require("./models/user");
+const postModal = require("./models/post")
 const cookieParser = require("cookie-parser");
 const app = express();
 const port = 3000;
@@ -18,6 +19,13 @@ app.get("/", (req, res) => {
 app.get("/login", (req, res) => {
   res.render("login");
 });
+
+//Profile
+app.get('/profile' , isLoggedIn ,async (req ,res) => {
+  let user = await userModel.findOne({email : req.user.email}).populate("posts")
+  // console.log(user);
+  res.render("profile" , {user});
+})
 
 //Register
 app.post("/register", async (req, res) => {
@@ -58,7 +66,7 @@ app.post("/login", async (req, res) => {
     if (result) {
         let token = jwt.sign({ email: email, userid: user._id }, "shhhh");
         res.cookie("token", token);
-        res.status(200).send("You can Login");
+        res.status(200).redirect("/profile");
     } else {
       res.redirect("/login");
     }
@@ -71,18 +79,33 @@ app.get("/logout", (req, res) => {
   res.redirect("login");
 });
 
+
+
 // Middleware for protected Routes
 function isLoggedIn(req , res , next){
     if(req.cookies.token === ""){
-        res.send("You must be Logged in");
+        res.redirect("/login");
     }
     else{
         let data = jwt.verify(req.cookies.token , "shhhh");
         req.user = data;
+        next();
     }
-
-    next();
+    
 }
+//posts route
+app.post('/post' , isLoggedIn ,async (req ,res) => {
+  let user = await userModel.findOne({email : req.user.email})
+  let {content} = req.body
+  let post = await postModal.create({
+    user: user._id,
+    content
+  })
+
+  user.posts.push(post._id)
+  await user.save();
+  res.redirect("/profile")
+})
 
 app.listen(port, (req, res) => {
   console.log("Server running on:- ", port);
